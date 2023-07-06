@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Task Room</string>
+    <string name="enter_the_room_name">Enter the Room Name</string>
+    <string name="create">Create</string>
+    <string name="cancel">Cancel</string>
+    <string name="live">Live</string>
+</resources>
