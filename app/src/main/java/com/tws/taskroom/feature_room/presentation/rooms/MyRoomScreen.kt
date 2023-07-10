@@ -94,13 +94,15 @@ fun MyRoomScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(20.dp)
             ) {
                 Text(
                     text = stringResource(R.string.enter_the_room_name),
                     style = TextStyle(
-                        fontWeight = FontWeight.W600,
-                        fontSize = 18.sp
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
                 )
                 Spacer(modifier = Modifier.height(5.dp))
@@ -113,7 +115,13 @@ fun MyRoomScreen(
                     },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done
-                    )
+                    ),
+                    shape = RoundedCornerShape(15.dp),
+                    colors = androidx.compose.material.TextFieldDefaults.textFieldColors(
+                        backgroundColor = Color.White,
+                        focusedIndicatorColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
                 )
                 SimpleCheckboxComponent(
                     isChecked = uiState.value.isLive,
@@ -135,8 +143,8 @@ fun MyRoomScreen(
                             viewModel.onEvent(MyRoomEvent.OnNameChange(""))
                         },
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color.Gray,
-                            contentColor = Color.White,
+                            backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = Color.Black,
                         ),
                     ) {
                         Text(text = stringResource(R.string.cancel))
@@ -177,8 +185,8 @@ fun MyRoomScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color.Red,
-                            contentColor = Color.White,
+                            backgroundColor = MaterialTheme.colorScheme.onSurface,
+                            contentColor = Color.Black,
                         ),
                     ) {
                         Text(text = btnCreate)
