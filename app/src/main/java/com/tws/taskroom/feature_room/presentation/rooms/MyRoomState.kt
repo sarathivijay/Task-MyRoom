@@ -16,3 +16,8 @@ sealed class MyRoomEvent {
     data class Update(val myRoom: MyRoom) : MyRoomEvent()
     object Cancel : MyRoomEvent()
 }
+
+sealed class Error {
+    object Idle : Error()
+    object ErrorMsg : Error()
+}

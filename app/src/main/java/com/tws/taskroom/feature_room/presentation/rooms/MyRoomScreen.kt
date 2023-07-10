@@ -26,7 +26,6 @@ import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.Scaffold
@@ -37,6 +36,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.rememberScaffoldState
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,7 +48,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,21 +61,20 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tws.taskroom.R
 import com.tws.taskroom.feature_room.domain.model.MyRoom
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun MyRoomScreen(
     viewModel: MyRoomViewModel = viewModel(),
 ) {
     var isEditable by remember { mutableStateOf(false) }
+    var btnCreate by remember { mutableStateOf("Create") }
 
     val scaffoldState = rememberScaffoldState()
     val snackBarHostState = scaffoldState.snackbarHostState
     val uiState = viewModel.uiState.collectAsState()
+    val errorState = viewModel.eventChannel
     val snackBarState by viewModel.snackBarState.collectAsState()
     val modalSheetState = rememberModalBottomSheetState(
         initialValue = ModalBottomSheetValue.Hidden,
@@ -81,7 +83,7 @@ fun MyRoomScreen(
     )
 
     val coroutineScope = rememberCoroutineScope()
-
+    val focusManager = LocalFocusManager.current
 
     ModalBottomSheetLayout(
         sheetState = modalSheetState,
@@ -124,6 +126,7 @@ fun MyRoomScreen(
                     Button(
                         onClick = {
                             coroutineScope.launch {
+                                focusManager.clearFocus()
                                 modalSheetState.hide()
                             }
                             viewModel.onEvent(MyRoomEvent.IsLive(false))
@@ -140,6 +143,7 @@ fun MyRoomScreen(
                     Button(
                         onClick = {
                             coroutineScope.launch {
+                                focusManager.clearFocus()
                                 modalSheetState.hide()
                             }
                             if (uiState.value.myRoomName.isEmpty()) {
@@ -157,16 +161,17 @@ fun MyRoomScreen(
                                             )
                                         )
                                     )
-                                }
-                                viewModel.onEvent(
-                                    MyRoomEvent.Create(
-                                        myRoom = MyRoom(
-                                            name = uiState.value.myRoomName,
-                                            timestamp = System.currentTimeMillis(),
-                                            isLive = uiState.value.isLive
+                                } else {
+                                    viewModel.onEvent(
+                                        MyRoomEvent.Create(
+                                            myRoom = MyRoom(
+                                                name = uiState.value.myRoomName,
+                                                timestamp = System.currentTimeMillis(),
+                                                isLive = uiState.value.isLive
+                                            )
                                         )
                                     )
-                                )
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -174,21 +179,26 @@ fun MyRoomScreen(
                             contentColor = Color.White,
                         ),
                     ) {
-                        Text(text = stringResource(R.string.create))
+                        Text(text = btnCreate)
                     }
                 }
             }
         }
     ) {
         Scaffold(
+            backgroundColor = MaterialTheme.colorScheme.background,
             floatingActionButton = {
-                FloatingActionButton(onClick = {
-                    isEditable = true
-                    viewModel.onEvent(MyRoomEvent.IsLive(false))
-                    viewModel.onEvent(MyRoomEvent.OnNameChange(""))
-                    coroutineScope.launch { modalSheetState.show() }
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                FloatingActionButton(
+                    backgroundColor = MaterialTheme.colorScheme.onSurface,
+                    onClick = {
+                        btnCreate = "Create"
+                        isEditable = true
+                        viewModel.onEvent(MyRoomEvent.IsLive(false))
+                        viewModel.onEvent(MyRoomEvent.OnNameChange(""))
+                        coroutineScope.launch { modalSheetState.show() }
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = Color.Black)
                 }
             },
             snackbarHost = {
@@ -196,66 +206,153 @@ fun MyRoomScreen(
             }
         ) {
             LaunchedEffect(key1 = snackBarState) {
-                if (snackBarState) {
-                    scaffoldState.snackbarHostState.showSnackbar("Name should be unique")
+                errorState.collect {
+                    when (it) {
+                        Error.ErrorMsg -> {
+                            scaffoldState.snackbarHostState.showSnackbar("Name should be unique")
+                        }
+
+                        Error.Idle -> {}
+                    }
                 }
             }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.LightGray.copy(alpha = 0.5f))
             ) {
-                LazyColumn(
-                    modifier = Modifier.padding(it)
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(uiState.value.myRooms) { myRoom ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(15.dp)
-                                .clickable {
-                                    isEditable = false
-                                    viewModel.onEvent(MyRoomEvent.OnNameChange(myRoom.name))
-                                    viewModel.onEvent(MyRoomEvent.IsLive(myRoom.isLive))
-                                    coroutineScope.launch { modalSheetState.show() }
-                                }
-
+                    Text(
+                        modifier = Modifier.padding(10.dp),
+                        text = stringResource(R.string.vpm),
+                        style = TextStyle(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 22.sp,
+                            color = Color.White
+                        )
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, end = 20.dp)
+                    ) {
+                        Button(
+                            onClick = { },
+                            shape = RoundedCornerShape(30.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colorScheme.background,
+                                contentColor = MaterialTheme.colorScheme.onBackground
+                            )
                         ) {
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
+                            Text(text = "Videos")
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Button(
+                            onClick = { },
+                            shape = RoundedCornerShape(30.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colorScheme.onSurface,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text(text = "Feeds")
+                        }
+                    }
+                    if (uiState.value.myRooms.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                modifier = Modifier.align(Alignment.Center),
+                                text = stringResource(R.string.no_data),
+                                style = TextStyle(
+                                    color = Color.White
+                                )
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .padding(it)
+                                .padding(bottom = 10.dp)
+                        ) {
+                            items(uiState.value.myRooms) { myRoom ->
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Card(modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color.White)
                                         .padding(15.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.weight(1f)
-                                    ) {
+                                        .clip(shape = RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            btnCreate = "Update"
+                                            isEditable = false
+                                            viewModel.onEvent(MyRoomEvent.OnNameChange(myRoom.name))
+                                            viewModel.onEvent(MyRoomEvent.IsLive(myRoom.isLive))
+                                            coroutineScope.launch { modalSheetState.show() }
+                                        }) {
+                                        Box(
+                                            modifier = Modifier
+                                                .height(170.dp)
+                                                .fillMaxWidth()
+                                                .background(MaterialTheme.colorScheme.surface)
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(10.dp)
+                                            ) {
+                                                AnimatedVisibility(visible = myRoom.isLive) {
+                                                    Text(
+                                                        modifier = Modifier
+                                                            .background(Color.Red)
+                                                            .padding(horizontal = 5.dp),
+                                                        text = stringResource(R.string.live),
+                                                        style = TextStyle(
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color.White
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                modifier = Modifier.align(Alignment.Center),
+                                                text = stringResource(R.string.live).uppercase(),
+                                                style = TextStyle(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF196619)
+                                                )
+                                            )
+                                        }
+                                    }
+                                    Row(modifier = Modifier.fillMaxWidth()) {
                                         Text(
+                                            modifier = Modifier
+                                                .padding(horizontal = 20.dp)
+                                                .weight(1f),
                                             text = myRoom.name,
                                             style = TextStyle(
-                                                fontWeight = FontWeight.W600,
+                                                color = Color(0xFFB1B1B1),
+                                                fontWeight = FontWeight.Normal,
                                                 fontSize = 18.sp
                                             )
                                         )
-                                        Spacer(modifier = Modifier.height(5.dp))
+
                                         Text(
-                                            text = convertMillisToDateTimeString(myRoom.timestamp),
+                                            modifier = Modifier
+                                                .padding(horizontal = 20.dp)
+                                                .weight(1f),
+                                            text = viewModel.convertMillisToDateTimeString(myRoom.timestamp),
                                             style = TextStyle(
+                                                color = Color(0xFFB1B1B1),
+                                                fontWeight = FontWeight.Normal,
                                                 fontSize = 16.sp
                                             )
                                         )
                                     }
-                                    AnimatedVisibility(visible = myRoom.isLive) {
-                                        Text(
-                                            text = stringResource(R.string.live).uppercase(),
-                                            style = TextStyle(
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF196619)
-                                            )
-                                        )
-                                    }
+                                    Spacer(modifier = Modifier.height(5.dp))
+                                    Divider(
+                                        modifier = Modifier.padding(horizontal = 20.dp),
+                                        color = Color(0xFF727272).copy(alpha = 0.5f)
+                                    )
                                 }
                             }
                         }
@@ -264,14 +361,6 @@ fun MyRoomScreen(
             }
         }
     }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun convertMillisToDateTimeString(timestamp: Long): String {
-    val instant = Instant.ofEpochMilli(timestamp)
-    val localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm a")
-    return localDateTime.format(formatter)
 }
 
 
