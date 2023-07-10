@@ -4,6 +4,10 @@ import SimpleCheckboxComponent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,13 +30,14 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.FloatingActionButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Scaffold
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.rememberModalBottomSheetState
@@ -72,7 +77,7 @@ fun MyRoomScreen(
 ) {
     var isEditable by remember { mutableStateOf(false) }
     var btnCreate by remember { mutableStateOf("Create") }
-
+    var isBottomScreenVisible by remember { mutableStateOf(false) }
     val scaffoldState = rememberScaffoldState()
     val snackBarHostState = scaffoldState.snackbarHostState
     val uiState = viewModel.uiState.collectAsState()
@@ -95,9 +100,10 @@ fun MyRoomScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(20.dp)
+                    .padding(10.dp)
             ) {
                 Text(
+                    modifier = Modifier.padding(horizontal = 13.dp),
                     text = stringResource(R.string.enter_the_room_name),
                     style = TextStyle(
                         fontWeight = FontWeight.Normal,
@@ -105,9 +111,11 @@ fun MyRoomScreen(
                         color = Color.White
                     )
                 )
-                Spacer(modifier = Modifier.height(5.dp))
-                TextField(
-                    modifier = Modifier.fillMaxWidth(),
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp),
                     value = uiState.value.myRoomName,
                     readOnly = !isEditable,
                     onValueChange = {
@@ -122,12 +130,16 @@ fun MyRoomScreen(
                         focusedIndicatorColor = Color.Transparent,
                         cursorColor = MaterialTheme.colorScheme.secondaryContainer,
                     ),
+                    textStyle = TextStyle(
+                        fontSize = 16.sp
+                    )
                 )
                 SimpleCheckboxComponent(
+                    modifier = Modifier,
                     isChecked = uiState.value.isLive,
                     onCheckChange = {
                         viewModel.onEvent(MyRoomEvent.IsLive(it))
-                    }, modifier = Modifier
+                    }
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -136,6 +148,7 @@ fun MyRoomScreen(
                     Button(
                         onClick = {
                             coroutineScope.launch {
+                                isBottomScreenVisible = false
                                 focusManager.clearFocus()
                                 modalSheetState.hide()
                             }
@@ -153,6 +166,7 @@ fun MyRoomScreen(
                     Button(
                         onClick = {
                             coroutineScope.launch {
+                                isBottomScreenVisible = false
                                 focusManager.clearFocus()
                                 modalSheetState.hide()
                             }
@@ -200,9 +214,14 @@ fun MyRoomScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     backgroundColor = MaterialTheme.colorScheme.onSurface,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 0.dp,
+                        pressedElevation = 2.dp
+                    ),
                     onClick = {
                         btnCreate = "Create"
                         isEditable = true
+                        isBottomScreenVisible = true
                         viewModel.onEvent(MyRoomEvent.IsLive(false))
                         viewModel.onEvent(MyRoomEvent.OnNameChange(""))
                         coroutineScope.launch { modalSheetState.show() }
@@ -226,140 +245,162 @@ fun MyRoomScreen(
                     }
                 }
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
+            LaunchedEffect(key1 = modalSheetState.currentValue) {
+                isBottomScreenVisible = modalSheetState.isVisible
+            }
+            AnimatedVisibility(
+                visible = !isBottomScreenVisible,
+                enter = fadeIn(
+                    animationSpec = spring(stiffness = Spring.StiffnessHigh),
+                    initialAlpha = 0f,
+                ),
+                exit = fadeOut(
+                    animationSpec = spring(stiffness = Spring.StiffnessHigh),
+                    targetAlpha = 0f,
+                ),
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
                 ) {
-                    Text(
-                        modifier = Modifier.padding(10.dp),
-                        text = stringResource(R.string.vpm),
-                        style = TextStyle(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 22.sp,
-                            color = Color.White
-                        )
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp)
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = { },
-                            shape = RoundedCornerShape(30.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = MaterialTheme.colorScheme.background,
-                                contentColor = MaterialTheme.colorScheme.onBackground
+                        Text(
+                            modifier = Modifier.padding(10.dp),
+                            text = stringResource(R.string.vpm),
+                            style = TextStyle(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 22.sp,
+                                color = Color.White
                             )
-                        ) {
-                            Text(text = "Videos")
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Button(
-                            onClick = { },
-                            shape = RoundedCornerShape(30.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = MaterialTheme.colorScheme.onSurface,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text(text = "Feeds")
-                        }
-                    }
-                    if (uiState.value.myRooms.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                modifier = Modifier.align(Alignment.Center),
-                                text = stringResource(R.string.no_data),
-                                style = TextStyle(
-                                    color = Color.White
-                                )
-                            )
-                        }
-                    } else {
-                        LazyColumn(
+                        )
+                        Row(
                             modifier = Modifier
-                                .padding(it)
-                                .padding(bottom = 10.dp)
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, end = 20.dp)
                         ) {
-                            items(uiState.value.myRooms) { myRoom ->
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Card(modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(15.dp)
-                                        .clip(shape = RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            btnCreate = "Update"
-                                            isEditable = false
-                                            viewModel.onEvent(MyRoomEvent.OnNameChange(myRoom.name))
-                                            viewModel.onEvent(MyRoomEvent.IsLive(myRoom.isLive))
-                                            coroutineScope.launch { modalSheetState.show() }
-                                        }) {
-                                        Box(
-                                            modifier = Modifier
-                                                .height(170.dp)
-                                                .fillMaxWidth()
-                                                .background(MaterialTheme.colorScheme.surface)
-                                        ) {
-                                            Row(
-                                                horizontalArrangement = Arrangement.End,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(10.dp)
-                                            ) {
-                                                AnimatedVisibility(visible = myRoom.isLive) {
-                                                    Text(
-                                                        modifier = Modifier
-                                                            .background(Color.Red)
-                                                            .padding(horizontal = 5.dp),
-                                                        text = stringResource(R.string.live),
-                                                        style = TextStyle(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.White
-                                                        )
+                            Button(
+                                onClick = { },
+                                shape = RoundedCornerShape(30.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = MaterialTheme.colorScheme.background,
+                                    contentColor = MaterialTheme.colorScheme.onBackground
+                                )
+                            ) {
+                                Text(text = "Videos")
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Button(
+                                onClick = { },
+                                shape = RoundedCornerShape(30.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = MaterialTheme.colorScheme.onSurface,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Text(text = "Feeds")
+                            }
+                        }
+                        if (uiState.value.myRooms.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                Text(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    text = stringResource(R.string.no_data),
+                                    style = TextStyle(
+                                        color = Color.White,
+                                        fontSize = 18.sp
+                                    )
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .padding(it)
+                                    .padding(bottom = 10.dp)
+                            ) {
+                                items(uiState.value.myRooms) { myRoom ->
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Card(modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(15.dp)
+                                            .clip(shape = RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                btnCreate = "Update"
+                                                isEditable = false
+                                                viewModel.onEvent(
+                                                    MyRoomEvent.OnNameChange(
+                                                        myRoom.name
                                                     )
+                                                )
+                                                viewModel.onEvent(MyRoomEvent.IsLive(myRoom.isLive))
+                                                coroutineScope.launch { modalSheetState.show() }
+                                            }) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(170.dp)
+                                                    .fillMaxWidth()
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                            ) {
+                                                Row(
+                                                    horizontalArrangement = Arrangement.End,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(10.dp)
+                                                ) {
+                                                    AnimatedVisibility(visible = myRoom.isLive) {
+                                                        Text(
+                                                            modifier = Modifier
+                                                                .background(Color.Red)
+                                                                .padding(horizontal = 5.dp),
+                                                            text = stringResource(R.string.live),
+                                                            style = TextStyle(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color.White
+                                                            )
+                                                        )
+                                                    }
                                                 }
+                                                Image(
+                                                    modifier = Modifier.align(Alignment.Center),
+                                                    painter = painterResource(id = R.drawable.video_play),
+                                                    contentDescription = null
+                                                )
                                             }
-                                            Image(
-                                                modifier = Modifier.align(Alignment.Center),
-                                                painter = painterResource(id = R.drawable.video_play),
-                                                contentDescription = null
+                                        }
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            Text(
+                                                modifier = Modifier
+                                                    .padding(horizontal = 20.dp)
+                                                    .weight(1f),
+                                                text = myRoom.name,
+                                                style = TextStyle(
+                                                    color = Color(0xFFB1B1B1),
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 18.sp
+                                                )
+                                            )
+
+                                            Text(
+                                                modifier = Modifier
+                                                    .padding(horizontal = 20.dp)
+                                                    .weight(1f),
+                                                text = viewModel.convertMillisToDateTimeString(
+                                                    myRoom.timestamp
+                                                ),
+                                                style = TextStyle(
+                                                    color = Color(0xFFB1B1B1),
+                                                    fontWeight = FontWeight.Normal,
+                                                    fontSize = 16.sp
+                                                )
                                             )
                                         }
-                                    }
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        Text(
-                                            modifier = Modifier
-                                                .padding(horizontal = 20.dp)
-                                                .weight(1f),
-                                            text = myRoom.name,
-                                            style = TextStyle(
-                                                color = Color(0xFFB1B1B1),
-                                                fontWeight = FontWeight.Normal,
-                                                fontSize = 18.sp
-                                            )
-                                        )
-
-                                        Text(
-                                            modifier = Modifier
-                                                .padding(horizontal = 20.dp)
-                                                .weight(1f),
-                                            text = viewModel.convertMillisToDateTimeString(myRoom.timestamp),
-                                            style = TextStyle(
-                                                color = Color(0xFFB1B1B1),
-                                                fontWeight = FontWeight.Normal,
-                                                fontSize = 16.sp
-                                            )
+                                        Spacer(modifier = Modifier.height(5.dp))
+                                        Divider(
+                                            modifier = Modifier.padding(horizontal = 20.dp),
+                                            color = Color(0xFF727272).copy(alpha = 0.5f)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(5.dp))
-                                    Divider(
-                                        modifier = Modifier.padding(horizontal = 20.dp),
-                                        color = Color(0xFF727272).copy(alpha = 0.5f)
-                                    )
                                 }
                             }
                         }

@@ -1,3 +1,4 @@
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,15 +30,14 @@ fun SimpleCheckboxComponent(
         Checkbox(
             colors = CheckboxDefaults.colors(
                 checkedColor = MaterialTheme.colorScheme.secondaryContainer,
-                uncheckedColor = Color.White
+                uncheckedColor = Color.White,
+                checkmarkColor = Color.Black
             ),
             checked = isChecked,
-            modifier = Modifier.padding(8.dp),
             onCheckedChange = { onCheckChange(it) },
         )
         Text(
             text = stringResource(R.string.islive),
-            modifier = Modifier.padding(8.dp),
             style = TextStyle(
                 color = Color.White
             )

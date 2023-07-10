@@ -1,10 +1,10 @@
 <resources>
     <string name="app_name">Task Room</string>
-    <string name="enter_the_room_name">Enter the Room Name</string>
+    <string name="enter_the_room_name">Enter the room name</string>
     <string name="create">Create</string>
     <string name="cancel">Cancel</string>
     <string name="live">Live</string>
-    <string name="no_data">No data found</string>
+    <string name="no_data">No rooms found</string>
     <string name="vpm">VPM</string>
     <string name="islive">isLive</string>
 </resources>
